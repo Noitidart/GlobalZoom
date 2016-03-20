@@ -38,39 +38,39 @@ var CPS2;
 var gObserves = {
 	observers: {
 		'browser-fullZoom:zoomReset': function (aSubject, aTopic, aData) {
-
+			console.log('zoom reset!', aSubject, aTopic, aData);
 			
 			// have to do this because see link99993
 			CPS2.setGlobal('browser.content.full-zoom', 1, null, {
 				handleResult: function() {
-
+					console.log('in handle result, args:', arguments);
 				},
 				handleCompletion: function() {
-
+					console.log('ok complete, args:', arguments);
 				}
 			});
 		},
 		'browser-fullZoom:zoomChange': function (aSubject, aTopic, aData) {
-
+			console.log('zoom changed!', aSubject, aTopic, aData);
 			
 			var newZoom = Services.wm.getMostRecentWindow(null).ZoomManager.zoom;
-
+			console.log('newZoom:', newZoom);
 			
 			CPS2.setGlobal('browser.content.full-zoom', newZoom, null, {
 				handleResult: function() {
-
+					console.log('in handle result, args:', arguments);
 				},
 				handleCompletion: function() {
-
+					console.log('ok complete, args:', arguments);
 					removeAllButGlobal(); // i put in the oncomplete, so it doesnt change it to what ever global is then bounce back to this new value
 				}
 			});
 		}
 	},
 	init: function() {
-
+		console.log('this.observers:', this.observers);
 		for (var o in this.observers) {
-
+			console.log('initing o:', o);
 			// run extra `reg` BEFORE // link3253644144442177
 			if (this.observers[o].reg) {
 				this.observers[o].reg();
@@ -103,16 +103,16 @@ function removeAllButGlobal() {
 	var domainsToRemoveFor = [];
 	CPS2.getByName('browser.content.full-zoom', null, {
 		handleResult: function(aPref) {
-
+			console.log('in handle result, args:', arguments)
 			if (aPref.domain) {
 				domainsToRemoveFor.push(aPref.domain);
 			} // else its null, so that means its the global value
 		},
 		handleCompletion: function() {
-
+			console.log('ok complete, args:', arguments)
 			
 			for (var i=0; i<domainsToRemoveFor.length; i++) {
-
+				console.log('removing for domain:', domainsToRemoveFor[i]);
 				CPS2.removeByDomainAndName(domainsToRemoveFor[i], 'browser.content.full-zoom', null);
 			}
 		}
@@ -124,15 +124,15 @@ function removeAllButGlobal() {
 
 function install() {}
 function uninstall(aData, aReason) {
-
+	console.log('uninstall aReason:', aReason);
 	if (aReason == ADDON_UNINSTALL) {
 		// reset the global zoom back to 1, otherwise when user resets zoom, then it will go to whatever was the last global setting
 		CPS2.removeByName('browser.content.full-zoom', null, {
 			handleResult: function() {
-
+				console.log('in handle result, args:', arguments);
 			},
 			handleCompletion: function() {
-
+				console.log('ok complete, args:', arguments);
 			}
 		});
 	}
@@ -150,10 +150,10 @@ function startup(aData, aReason) {
 	// i dont do this way anymore, because this will remove the global setting as well. so i get all names and remove all but the global one, which is the one with null for domain in `removeAllButGlobal`
 	CPS2.setGlobal('browser.content.full-zoom', 1, null, {
 		handleResult: function() {
-
+			console.log('in handle result, args:', arguments);
 		},
 		handleCompletion: function() {
-
+			console.log('ok complete, args:', arguments);
 		}
 	});
 	*/
@@ -163,10 +163,10 @@ function startup(aData, aReason) {
 	// instantitate global zoom at 1, because thats the default value see - link99993
 	CPS2.setGlobal('browser.content.full-zoom', 1, null, {
 		handleResult: function() {
-
+			console.log('in handle result, args:', arguments);
 		},
 		handleCompletion: function() {
-
+			console.log('ok complete, args:', arguments);
 		}
 	});
 	*/
@@ -184,15 +184,15 @@ function shutdown(aData, aReason) {
 
 	gObserves.uninit();
 	
-
+	console.log('shutdown aReason:', aReason);
 	if (aReason == ADDON_DISABLE) {
 		// reset the global zoom back to 1, otherwise when user resets zoom, then it will go to whatever was the last global setting
 		CPS2.removeByName('browser.content.full-zoom', null, {
 			handleResult: function() {
-
+				console.log('in handle result, args:', arguments);
 			},
 			handleCompletion: function() {
-
+				console.log('ok complete, args:', arguments);
 			}
 		});
 	}
