@@ -123,7 +123,20 @@ function removeAllButGlobal() {
 
 
 function install() {}
-function uninstall() {}
+function uninstall(aData, aReason) {
+	console.log('uninstall aReason:', aReason);
+	if (aReason == ADDON_UNINSTALL) {
+		// reset the global zoom back to 1, otherwise when user resets zoom, then it will go to whatever was the last global setting
+		CPS2.removeByName('browser.content.full-zoom', null, {
+			handleResult: function() {
+				console.log('in handle result, args:', arguments);
+			},
+			handleCompletion: function() {
+				console.log('ok complete, args:', arguments);
+			}
+		});
+	}
+}
 
 function startup(aData, aReason) {
 	
@@ -170,4 +183,17 @@ function shutdown(aData, aReason) {
 	if (aReason == APP_SHUTDOWN) { return }
 
 	gObserves.uninit();
+	
+	console.log('shutdown aReason:', aReason);
+	if (aReason == ADDON_DISABLE) {
+		// reset the global zoom back to 1, otherwise when user resets zoom, then it will go to whatever was the last global setting
+		CPS2.removeByName('browser.content.full-zoom', null, {
+			handleResult: function() {
+				console.log('in handle result, args:', arguments);
+			},
+			handleCompletion: function() {
+				console.log('ok complete, args:', arguments);
+			}
+		});
+	}
 }
