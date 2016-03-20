@@ -18,15 +18,6 @@
 				<em:maxVersion>48.*</em:maxVersion> <!-- the latest version i tested it in is 48.0a1 -->
 			</Description>
 		</em:targetApplication>
-
-		<!-- Firefox for Android -->
-		<em:targetApplication>
-		  <Description>
-			<em:id>{aa3c5121-dab2-40e2-81ca-7ea25febc110}</em:id>
-			<em:minVersion>4.0</em:minVersion> <!-- guess based on firefox testing -->
-			<em:maxVersion>44.0</em:maxVersion> <!-- guess based on firefox testing -->
-		  </Description>
-		</em:targetApplication>
 		
 		<!-- Front End MetaData -->
 		<!-- must provide default non-localized because It's used as a default on AMO. It's used as a default by the add-on manager, with the possibility of other locales overriding it. Failure to provide a non-localized name will lead to failed upload on AMO. -->
