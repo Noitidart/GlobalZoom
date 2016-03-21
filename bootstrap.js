@@ -6,30 +6,6 @@ Cu.import('resource://gre/modules/Services.jsm');
 Cu.import('resource://gre/modules/XPCOMUtils.jsm');
 
 // Globals
-var core = { // core has stuff added into by MainWorker (currently MainWorker) and then it is updated
-	addon: {
-		name: 'GlobalZoom',
-		id: 'GlobalZoom@jetpack',
-		// path: {
-		// 	name: 'globalzoom',
-		// 	content: 'chrome://globalzoom/content/',
-		// 	locale: 'chrome://globalzoom/content/locale/'
-		// },
-		// prefbranch: 'extensions.GlobalZoom@jetpack.',
-		// prefs: {},
-		// cache_key: Math.random() // set to version on release
-	},
-	// os: {
-	// 	name: OS.Constants.Sys.Name.toLowerCase(),
-	// 	toolkit: Services.appinfo.widgetToolkit.toLowerCase(),
-	// 	xpcomabi: Services.appinfo.XPCOMABI
-	// },
-	// firefox: {
-	// 	pid: Services.appinfo.processID,
-	// 	version: Services.appinfo.version
-	// }
-};
-
 var BOOTSTRAP = this;
 var CPS2;
 
@@ -56,15 +32,58 @@ var gObserves = {
 			var newZoom = Services.wm.getMostRecentWindow(null).ZoomManager.zoom;
 			console.log('newZoom:', newZoom);
 			
-			CPS2.setGlobal('browser.content.full-zoom', newZoom, null, {
-				handleResult: function() {
-					console.log('in handle result, args:', arguments);
-				},
-				handleCompletion: function() {
-					console.log('ok complete, args:', arguments);
-					removeAllButGlobal(); // i put in the oncomplete, so it doesnt change it to what ever global is then bounce back to this new value
+			// get all currently open domains, and set site specific for each domain so they update in background, then remove all
+			var allDomains = new Set();
+			var domWins = Services.wm.getEnumerator('navigator:browser');
+			while (domWins.hasMoreElements()) {
+				var domWin = domWins.getNext();
+				var gbrowser = domWin.gBrowser;
+				var cntBrowsers = gbrowser.browsers;
+				for (var i=0; i<cntBrowsers; i++) {
+					// e10s safe way to check content of tab
+					console.log(i, gbrowser.browsers[i].currentURI.spec);
+					allDomains.add(CPS2.extractDomain(gbrowser.browsers[i].currentURI.spec));
 				}
+			}
+			
+			
+			var promiseAllArr_siteSpecificSet = [];
+			allDomains.forEach(function(domain) {
+				var deferred_siteSpecificSet = new Deferred();
+				promiseAllArr_siteSpecificSet.push(promiseAllArr_siteSpecificSet.promise);
+				
+				// set zoom for this domain
+				CPS2.set(domain, 'browser.content.full-zoom', newZoom, null, {
+					handleResult: function() {
+						console.log('in handle result, args:', arguments);
+					},
+					handleCompletion: function() {
+						console.log('ok complete, args:', arguments);
+						deferred_siteSpecificSet.resolve();
+					}
+				});
 			});
+			
+			var promiseAll_siteSpecificSet = Promise.all(promiseAllArr_siteSpecificSet);
+			promiseAll_siteSpecificSet.then(
+				function(aVal) {
+					console.log('Fullfilled - promiseAll_siteSpecificSet - ', aVal);
+					
+					// set global value
+					CPS2.setGlobal('browser.content.full-zoom', newZoom, null, {
+						handleResult: function() {
+							console.log('in handle result, args:', arguments);
+						},
+						handleCompletion: function() {
+							console.log('ok complete, args:', arguments);
+							// remove all site specific so each zoom goes to the global value of the one i just set
+							removeAllButGlobal(); // i put in the oncomplete, so it doesnt change it to what ever global is then bounce back to this new value
+						}
+					});
+				},
+				genericReject.bind(null, 'promiseAll_siteSpecificSet', 0)
+			).catch(genericCatch.bind(null, 'promiseAll_siteSpecificSet', 0));
+			
 		}
 	},
 	init: function() {
@@ -145,31 +164,8 @@ function startup(aData, aReason) {
 	
 	CPS2 = Cc['@mozilla.org/content-pref/service;1'].getService(Ci.nsIContentPrefService2);
 	
-	// remove all currently site site specific stuff - this will instantly (because observers are setup by the FullZoom module) change zoom to the global value default of 1 per dxr - https://dxr.mozilla.org/mozilla-central/source/browser/base/content/browser-fullZoom.js#281 - `value === undefined ? 1 : value` because value there is the global default value, but this call will remove the global value as well // link99993
-	/*
-	// i dont do this way anymore, because this will remove the global setting as well. so i get all names and remove all but the global one, which is the one with null for domain in `removeAllButGlobal`
-	CPS2.setGlobal('browser.content.full-zoom', 1, null, {
-		handleResult: function() {
-			console.log('in handle result, args:', arguments);
-		},
-		handleCompletion: function() {
-			console.log('ok complete, args:', arguments);
-		}
-	});
-	*/
+	// remove all currently site site specific stuff - this will instantly (because observers are setup by the FullZoom module) change zoom to the global value default of 1 per dxr - https://dxr.mozilla.org/mozilla-central/source/browser/base/content/browser-fullZoom.js#281 - `value === undefined ? 1 : value` because value there is the global default value // link99993
 	removeAllButGlobal();
-	
-	/* no need to instantiate it, why do it? because then on next browser startups with this addon installed then it will overwrite the previous value. and it has a default value anyways of 1 when all things of csp are cleared see dxr code on link99993
-	// instantitate global zoom at 1, because thats the default value see - link99993
-	CPS2.setGlobal('browser.content.full-zoom', 1, null, {
-		handleResult: function() {
-			console.log('in handle result, args:', arguments);
-		},
-		handleCompletion: function() {
-			console.log('ok complete, args:', arguments);
-		}
-	});
-	*/
 	
 	// because a reset happens to the global value of CPS2 I have to hack up reset to use 1
 	// set up observer so that on user change of zoom, i should put that value to global, and clear the site specific value created
@@ -197,3 +193,63 @@ function shutdown(aData, aReason) {
 		});
 	}
 }
+
+// start - common helper functions
+function Deferred() { // rev3 - https://gist.github.com/Noitidart/326f1282c780e3cb7390
+	// update 062115 for typeof
+	if (typeof(Promise) != 'undefined' && Promise.defer) {
+		//need import of Promise.jsm for example: Cu.import('resource:/gree/modules/Promise.jsm');
+		return Promise.defer();
+	} else if (typeof(PromiseUtils) != 'undefined'  && PromiseUtils.defer) {
+		//need import of PromiseUtils.jsm for example: Cu.import('resource:/gree/modules/PromiseUtils.jsm');
+		return PromiseUtils.defer();
+	} else {
+		/* A method to resolve the associated Promise with the value passed.
+		 * If the promise is already settled it does nothing.
+		 *
+		 * @param {anything} value : This value is used to resolve the promise
+		 * If the value is a Promise then the associated promise assumes the state
+		 * of Promise passed as value.
+		 */
+		this.resolve = null;
+
+		/* A method to reject the assocaited Promise with the value passed.
+		 * If the promise is already settled it does nothing.
+		 *
+		 * @param {anything} reason: The reason for the rejection of the Promise.
+		 * Generally its an Error object. If however a Promise is passed, then the Promise
+		 * itself will be the reason for rejection no matter the state of the Promise.
+		 */
+		this.reject = null;
+
+		/* A newly created Pomise object.
+		 * Initially in pending state.
+		 */
+		this.promise = new Promise(function(resolve, reject) {
+			this.resolve = resolve;
+			this.reject = reject;
+		}.bind(this));
+		Object.freeze(this);
+	}
+}
+function genericReject(aPromiseName, aPromiseToReject, aReason) {
+	var rejObj = {
+		name: aPromiseName,
+		aReason: aReason
+	};
+	console.error('Rejected - ' + aPromiseName + ' - ', rejObj);
+	if (aPromiseToReject) {
+		aPromiseToReject.reject(rejObj);
+	}
+}
+function genericCatch(aPromiseName, aPromiseToReject, aCaught) {
+	var rejObj = {
+		name: aPromiseName,
+		aCaught: aCaught
+	};
+	console.error('Caught - ' + aPromiseName + ' - ', rejObj);
+	if (aPromiseToReject) {
+		aPromiseToReject.reject(rejObj);
+	}
+}
+// end - common helper functions
