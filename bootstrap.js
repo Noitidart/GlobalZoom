@@ -26,17 +26,12 @@ var gObserves = {
 			console.log('newZoom:', newZoom);
 			
 			applyZoomToAllDomains(newZoom);
-			
 		}
 	},
 	init: function() {
 		console.log('this.observers:', this.observers);
 		for (var o in this.observers) {
 			console.log('initing o:', o);
-			// run extra `reg` BEFORE // link3253644144442177
-			if (this.observers[o].reg) {
-				this.observers[o].reg();
-			}
 			
 			// register it
 			// make it an object so i can addObserver and removeObserver to it
@@ -51,10 +46,8 @@ var gObserves = {
 			// unregister it
 			Services.obs.removeObserver(this.observers[o], o);
 			
-			// run extra `unreg` AFTER // link3253644144442177
-			if (this.observers[o].unreg) {
-				this.observers[o].unreg();
-			}
+			// restore it as a function so it can be re-inited
+			this.observers[o] = this.observers[o].observer;
 		}
 	}
 }
