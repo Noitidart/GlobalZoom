@@ -17,14 +17,7 @@ var gObserves = {
 			console.log('zoom reset!', aSubject, aTopic, aData);
 			
 			// have to do this because see link99993
-			CPS2.setGlobal('browser.content.full-zoom', 1, null, {
-				handleResult: function() {
-					console.log('in handle result, args:', arguments);
-				},
-				handleCompletion: function() {
-					console.log('ok complete, args:', arguments);
-				}
-			});
+			CPS2.setGlobal('browser.content.full-zoom', 1, null);
 		},
 		'browser-fullZoom:zoomChange': function (aSubject, aTopic, aData) {
 			console.log('zoom changed!', aSubject, aTopic, aData);
@@ -54,9 +47,6 @@ var gObserves = {
 				
 				// set zoom for this domain
 				CPS2.set(domain, 'browser.content.full-zoom', newZoom, null, {
-					handleResult: function() {
-						console.log('in handle result, args:', arguments);
-					},
 					handleCompletion: function() {
 						console.log('ok complete, args:', arguments);
 						deferred_siteSpecificSet.resolve();
@@ -71,9 +61,6 @@ var gObserves = {
 					
 					// set global value
 					CPS2.setGlobal('browser.content.full-zoom', newZoom, null, {
-						handleResult: function() {
-							console.log('in handle result, args:', arguments);
-						},
 						handleCompletion: function() {
 							console.log('ok complete, args:', arguments);
 							// remove all site specific so each zoom goes to the global value of the one i just set
@@ -146,14 +133,7 @@ function uninstall(aData, aReason) {
 	console.log('uninstall aReason:', aReason);
 	if (aReason == ADDON_UNINSTALL) {
 		// reset the global zoom back to 1, otherwise when user resets zoom, then it will go to whatever was the last global setting
-		CPS2.removeByName('browser.content.full-zoom', null, {
-			handleResult: function() {
-				console.log('in handle result, args:', arguments);
-			},
-			handleCompletion: function() {
-				console.log('ok complete, args:', arguments);
-			}
-		});
+		CPS2.removeByName('browser.content.full-zoom', null);
 	}
 }
 
@@ -183,14 +163,7 @@ function shutdown(aData, aReason) {
 	console.log('shutdown aReason:', aReason);
 	if (aReason == ADDON_DISABLE) {
 		// reset the global zoom back to 1, otherwise when user resets zoom, then it will go to whatever was the last global setting
-		CPS2.removeByName('browser.content.full-zoom', null, {
-			handleResult: function() {
-				console.log('in handle result, args:', arguments);
-			},
-			handleCompletion: function() {
-				console.log('ok complete, args:', arguments);
-			}
-		});
+		CPS2.removeByName('browser.content.full-zoom', null);
 	}
 }
 
