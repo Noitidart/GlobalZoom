@@ -62,7 +62,7 @@ function applyZoomToAllDomains(aNewZoom, boolDontSetGlobal, boolRemoveAll) {
 	while (domWins.hasMoreElements()) {
 		var domWin = domWins.getNext();
 		var gbrowser = domWin.gBrowser;
-		var cntBrowsers = gbrowser.browsers;
+		var cntBrowsers = gbrowser.browsers.length;
 		for (var i=0; i<cntBrowsers; i++) {
 			// e10s safe way to check uri of all browsers
 			console.log(i, gbrowser.browsers[i].currentURI.spec);
