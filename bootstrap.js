@@ -49,7 +49,7 @@ var gObserves = {
 			Services.obs.removeObserver(this.observers[o], o);
 			
 			// restore it as a function so it can be re-inited
-			this.observers[o] = this.observers[o].observer;
+			this.observers[o] = this.observers[o].observe;
 		}
 	}
 }
