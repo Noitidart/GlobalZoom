@@ -17,7 +17,9 @@ var gObserves = {
 			console.log('zoom reset!', aSubject, aTopic, aData);
 			
 			// have to do this because see link99993
-			CPS2.setGlobal('browser.content.full-zoom', 1, null);
+			// CPS2.setGlobal('browser.content.full-zoom', 1, null);
+			
+			applyZoomToAllDomains(1);
 		},
 		'browser-fullZoom:zoomChange': function (aSubject, aTopic, aData) {
 			console.log('zoom changed!', aSubject, aTopic, aData);
