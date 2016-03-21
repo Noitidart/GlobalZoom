@@ -14,7 +14,7 @@ var CPS2;
 var gObserves = {
 	observers: {
 		'browser-fullZoom:zoomReset': function (aSubject, aTopic, aData) {
-
+			console.log('zoom reset!', aSubject, aTopic, aData);
 			
 			// have to do this because see link99993
 			// CPS2.setGlobal('browser.content.full-zoom', 1, null);
@@ -22,18 +22,18 @@ var gObserves = {
 			applyZoomToAllDomains(1);
 		},
 		'browser-fullZoom:zoomChange': function (aSubject, aTopic, aData) {
-
+			console.log('zoom changed!', aSubject, aTopic, aData);
 			
 			var newZoom = Services.wm.getMostRecentWindow(null).ZoomManager.zoom;
-
+			console.log('newZoom:', newZoom);
 			
 			applyZoomToAllDomains(newZoom);
 		}
 	},
 	init: function() {
-
+		console.log('this.observers:', this.observers);
 		for (var o in this.observers) {
-
+			console.log('initing o:', o);
 			
 			// register it
 			// make it an object so i can addObserver and removeObserver to it
@@ -67,7 +67,7 @@ function applyZoomToAllDomains(aNewZoom, boolDontSetGlobal, boolRemoveAll) {
 		var cntBrowsers = gbrowser.browsers.length;
 		for (var i=0; i<cntBrowsers; i++) {
 			// e10s safe way to check uri of all browsers
-
+			console.log(i, gbrowser.browsers[i].currentURI.spec);
 			allDomains.add(CPS2.extractDomain(gbrowser.browsers[i].currentURI.spec));
 		}
 	}
@@ -80,7 +80,7 @@ function applyZoomToAllDomains(aNewZoom, boolDontSetGlobal, boolRemoveAll) {
 		// set zoom for this domain
 		CPS2.set(domain, 'browser.content.full-zoom', aNewZoom, null, {
 			handleCompletion: function() {
-
+				console.log('ok set for domain', domain, 'args:', arguments[0].domain);
 				deferred_siteSpecificSet.resolve();
 			}
 		});
@@ -91,7 +91,7 @@ function applyZoomToAllDomains(aNewZoom, boolDontSetGlobal, boolRemoveAll) {
 		promiseAllArr_siteSpecificSet.push(deferred_globalSet.promise);
 		CPS2.setGlobal('browser.content.full-zoom', aNewZoom, null, {
 			handleCompletion: function() {
-
+				console.log('ok complete, args:', arguments);
 				// remove all site specific so each zoom goes to the global value of the one i just set
 				deferred_globalSet.resolve(); // i put in the oncomplete, so it doesnt change it to what ever global is then bounce back to this new value
 			}
@@ -101,7 +101,7 @@ function applyZoomToAllDomains(aNewZoom, boolDontSetGlobal, boolRemoveAll) {
 	var promiseAll_siteSpecificSet = Promise.all(promiseAllArr_siteSpecificSet);
 	promiseAll_siteSpecificSet.then(
 		function(aVal) {
-
+			console.log('Fullfilled - promiseAll_siteSpecificSet - ', aVal);
 			
 			if (boolRemoveAll) {
 				CPS2.removeByName('browser.content.full-zoom', null);
@@ -119,16 +119,16 @@ function removeAllButGlobal() {
 	var domainsToRemoveFor = [];
 	CPS2.getByName('browser.content.full-zoom', null, {
 		handleResult: function(aPref) {
-
+			console.log('in handle result, args:', arguments)
 			if (aPref.domain) {
 				domainsToRemoveFor.push(aPref.domain);
 			} // else its null, so that means its the global value
 		},
 		handleCompletion: function() {
-
+			console.log('ok complete, args:', arguments)
 			
 			for (var i=0; i<domainsToRemoveFor.length; i++) {
-
+				console.log('removing for domain:', domainsToRemoveFor[i]);
 				CPS2.removeByDomainAndName(domainsToRemoveFor[i], 'browser.content.full-zoom', null);
 			}
 		}
@@ -140,7 +140,7 @@ function removeAllButGlobal() {
 
 function install() {}
 function uninstall(aData, aReason) {
-
+	console.log('uninstall aReason:', aReason);
 	if (aReason == ADDON_UNINSTALL) {
 		// reset the global zoom back to 1, otherwise when user resets zoom, then it will go to whatever was the last global setting
 		applyZoomToAllDomains(1, true, true);
@@ -170,7 +170,7 @@ function shutdown(aData, aReason) {
 
 	gObserves.uninit();
 	
-
+	console.log('shutdown aReason:', aReason);
 	if (aReason == ADDON_DISABLE) {
 		// reset the global zoom back to 1, otherwise when user resets zoom, then it will go to whatever was the last global setting
 		applyZoomToAllDomains(1, true, true);
@@ -220,7 +220,7 @@ function genericReject(aPromiseName, aPromiseToReject, aReason) {
 		name: aPromiseName,
 		aReason: aReason
 	};
-
+	console.error('Rejected - ' + aPromiseName + ' - ', rejObj);
 	if (aPromiseToReject) {
 		aPromiseToReject.reject(rejObj);
 	}
@@ -230,7 +230,7 @@ function genericCatch(aPromiseName, aPromiseToReject, aCaught) {
 		name: aPromiseName,
 		aCaught: aCaught
 	};
-
+	console.error('Caught - ' + aPromiseName + ' - ', rejObj);
 	if (aPromiseToReject) {
 		aPromiseToReject.reject(rejObj);
 	}
